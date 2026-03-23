@@ -110,3 +110,56 @@ main:
 4. 执行函数逻辑
 5. `sp`回到原来位置，同时将存在栈中的`ra`传入到寄存器中
 6. `(ret)`,`jr ra`
+
+## 常见的RISC-V指令以及寄存器
+- 一般而言，我们在自己写寄存器的指令的时候会使用到的寄存器是`x0`,`t0~t6`,`a0~a7`,`s0~s11`,`sp`,`ra`.
+- 这一些寄存器的使用有严格的要求，不能够随便使用，一般而言`t0~t6`是临时寄存器，我们可以临时使用，不用做任何处理，`a0~a7`需要我们按照一定规则使用，例如`a7`的不同值的时候调用`ecall`的结果完全不同，`a7 = 1`会打印`a0`储存的值，`a7 = 4`则会打印这个`a0`储存的字符串的地址的字符串。`a7 = 5`,`a0`则会储存输入的结果，`a7 = 10`则会退出程序。
+
+- `sp`,`ra`的使用往往和函数的调用有关，在上述的函数调用的汇编语言的书写中已经详细写清楚了这个逻辑。
+### 常见指令——运算
+```assembly
+add rd, rs1, rs2
+sub rd, rs1, rs2
+mul rd, rs1, rs2
+div rd, rs1, rs2
+and rd, rs1, rs2
+or rd, rs1, rs2
+xor rd, rs1, rs2
+```
+### 常见指令——比较
+```assembly
+slt  rd, rs1, rs2   # 有符号数比较
+sltu rd, rs1, rs2   # 无符号数比较
+```
+### 常见指令——移位
+```assembly
+sll rd, rs1, rs2  # Shift Left Logical 逻辑左移
+srl rd, rs1, rs2  # Shift Right Logical 逻辑右移（最高位补0，适用于无符号数）
+sra rd, rs1, rs2  # Shift Right Arithmetic 算术右移（最高位补符号位，适用于有符号数）
+```
+### 常见指令——分支指令
+```assembly
+beq rs1, rs2, label # 比较两个寄存器是否相等
+bne rs1, rs2, label # 比较两个寄存器是否不相等
+blt rs1, rs2, label # if rs1 < rs2
+bge rs1, rs2, label # if rs1 >= rs2
+bltu rs1, rs2, label # if rs1 < rs2
+bgeu rs1, rs2, label # if rs1 >= rs2
+jal rd, label # 跳转到label，并把返回地址保存在rd中
+jalr rd, rs1, imm # 跳转到rs1 + imm地址处的指令，并把返回地址保存在rd中
+jal offset = jal ra offset
+j offset = jal x0 offset
+```
+
+### 常见指令——地址与内存的处理
+```assembly
+s0: word. 9
+.text
+lw t0, 0(s0)
+sw t0, 0(s0)
+```
+- `lw t0, 0(s0)`：从`s0`地址处加载一个4字节的数据到`t0`中，这个指令会自动将地址转换为物理地址，然后从物理地址中加载数据到`t0`中。
+- `sw t0, 0(s0)`：将`t0`中的数据写入到`s0`地址处，这个指令会自动将地址转换为物理地址，然后将数据写入到物理地址中。
+**需要说明的是**
+1. 在这个地方中的0是一个立即数，表示的是地址的偏移量，这个偏移量会自动加上`s0`的地址，然后转换为物理地址，然后从物理地址中加载数据到`t0`中。
+2. 这个过程中，其实包含着两个语句`auipc t0, %pcrel_hi(s0)`和`lw t0, %pcrel_lo(n)(t0)`,其中`%pcrel_hi(s0)`是`(s0的地址-PC)`的高20位，`%pcrel_lo(n)`是`(s0的地址-PC)`的低12位。
